@@ -1,45 +1,44 @@
-const track = document.getElementById("image-track");
+const gallery = document.getElementById('image-gallery');
+const loadingElement = document.getElementById('loading');
+const errorElement = document.getElementById('error');
 
-const handleOnDown = e => track.dataset.mouseDownAt = e.clientX;
-
-const handleOnUp = () => {
-  track.dataset.mouseDownAt = "0";  
-  track.dataset.prevPercentage = track.dataset.percentage;
+async function loadImages() {
+    try {
+        const response = await fetch('/api/images');
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const images = await response.json();
+        loadingElement.style.display = 'none';
+        images.forEach(createImageElement);
+    } catch (error) {
+        console.error('Error:', error);
+        loadingElement.style.display = 'none';
+        errorElement.style.display = 'block';
+    }
 }
 
-const handleOnMove = e => {
-  if(track.dataset.mouseDownAt === "0") return;
-  
-  const mouseDelta = parseFloat(track.dataset.mouseDownAt) - e.clientX,
-        maxDelta = window.innerWidth / 2;
-  
-  const percentage = (mouseDelta / maxDelta) * -100,
-        nextPercentageUnconstrained = parseFloat(track.dataset.prevPercentage) + percentage,
-        nextPercentage = Math.max(Math.min(nextPercentageUnconstrained, 0), -100);
-  
-  track.dataset.percentage = nextPercentage;
-  
-  track.animate({
-    transform: `translate(${nextPercentage}%, -50%)`
-  }, { duration: 1200, fill: "forwards" });
-  
-  for(const image of track.getElementsByClassName("image")) {
-    image.animate({
-      objectPosition: `${100 + nextPercentage}% center`
-    }, { duration: 1200, fill: "forwards" });
-  }
+function createImageElement(image) {
+    const container = document.createElement('div');
+    container.className = 'image-container';
+
+    const img = document.createElement('img');
+    img.src = `/images/${image.id}.jpg`;
+    img.alt = image.title;
+    img.loading = 'lazy';
+
+    const caption = document.createElement('div');
+    caption.className = 'image-caption';
+    caption.textContent = image.title;
+
+    container.appendChild(img);
+    container.appendChild(caption);
+    gallery.appendChild(container);
+
+    img.onerror = () => {
+        container.remove();
+        console.error(`Failed to load image: ${image.id}`);
+    };
 }
 
-/* -- Had to add extra lines for touch events -- */
-
-window.onmousedown = e => handleOnDown(e);
-
-window.ontouchstart = e => handleOnDown(e.touches[0]);
-
-window.onmouseup = e => handleOnUp(e);
-
-window.ontouchend = e => handleOnUp(e.touches[0]);
-
-window.onmousemove = e => handleOnMove(e);
-
-window.ontouchmove = e => handleOnMove(e.touches[0]);
+loadImages();

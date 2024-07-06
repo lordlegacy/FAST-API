@@ -5,6 +5,7 @@ import schedule
 import time
 from datetime import timedelta
 import datetime
+import psycopg2
 
 # Reddit API authentication
 reddit = praw.Reddit(
@@ -24,8 +25,7 @@ def download_image(url, file_path):
     except requests.RequestException as e:
         print(f"Error downloading image: {e}")
 
-def process_posts():
-    """Process posts from the last 24 hours in the soccerbanners subreddit."""
+def process_posts():   
     subreddit = reddit.subreddit('soccerbanners')
     
     # Calculate the timestamp for 24 hours ago
@@ -37,7 +37,7 @@ def process_posts():
     # List to store post data (for future PostgreSQL insertion)
     posts_data = []
 
-    for post in subreddit.new(limit=None):
+    for post in subreddit.new(limit=5):
 
         post_time = post.created_utc
         posted_time = datetime.datetime.fromtimestamp(post_time)
@@ -65,18 +65,46 @@ def process_posts():
         print("------------------------")
 
     print(f"Processed {len(posts_data)} posts")
-    # Here you would typically insert posts_data into PostgreSQL
-    # But as requested, we'll skip that part for now
+
+    # PostgreSQL connection parameters
+    db_params = {
+    "dbname": "postgres",
+    "user": "postgres",
+    "password": "wearelegion",
+    "host": "localhost",
+    "port": "5432"
+    }
+
+
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+    cur = conn.cursor()
+
+    # Insert data into PostgreSQL
+    insert_query = """
+    INSERT INTO reddit_posts (post_id, title, posted_time)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (post_id) DO NOTHING;
+    """
+    
+    for post_id, title, posted_time in posts_data:
+        cur.execute(insert_query, (post_id, title, posted_time))
+
+    # Commit the transaction and close the connection
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    print(f"Inserted {len(posts_data)} posts into PostgreSQL")
 
 def daily_job():
-    """Run the post processing job."""
     print("Starting daily job to process posts from the last 24 hours...")
     process_posts()
     print("Daily job completed.")
 
 if __name__ == "__main__":
     # Schedule the job to run daily at 6:00 AM
-    schedule.every().day.at("15:48").do(daily_job)
+    schedule.every().day.at("11:27").do(daily_job)
     
     print("Scheduler started. Waiting for 6:00 AM to run the daily job...")
     
