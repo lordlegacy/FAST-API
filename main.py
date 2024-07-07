@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List
 import psycopg2
@@ -14,8 +15,12 @@ app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # Serve static files (images)
 app.mount("/images", StaticFiles(directory="images"), name="images")
+
+# Serve static files (HTML, JS, CSS)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Database connection parameters
 db_params = {
@@ -53,4 +58,4 @@ async def get_images():
 
 @app.get("/")
 async def read_root():
-    return {"message": "Welcome to the Soccer Banners API"}
+    return FileResponse('static/index.html')
