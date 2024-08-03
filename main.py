@@ -1,7 +1,6 @@
 # main.py
 from reddit_scrapper import RedditScraper
 from image_downloader import ImageDownloader
-from scheduler import Scheduler
 from database import save_image_to_db
 import os
 
@@ -25,7 +24,4 @@ def daily_job():
     print("Daily job completed.")
 
 if __name__ == "__main__":
-    scheduler = Scheduler()
-    scheduler.schedule_job(daily_job, "14:50")
-    print("Scheduler started. Waiting for 14:32 to run the daily job...")
-    scheduler.run()
+    daily_job()

@@ -1,0 +1,4 @@
+jobs:
+  - name: scrape-images
+    schedule: "2 3 * * *"  # Runs every day at 23 pM
+    command: "python main.py"
